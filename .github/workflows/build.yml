@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install yt-dlp
+      run: pip install yt-dlp
+
+    - name: Build addon
+      shell: powershell
+      run: .\build.ps1
+
+    - name: Get built filename
+      shell: powershell
+      run: |
+        $fda = (Get-Item avocadodl-*.fda).Name
+        Add-Content $env:GITHUB_ENV "FDA_FILE=$fda"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: avocadodl
+        path: ${{ env.FDA_FILE }}
+
+    - name: Upload release asset
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ${{ env.FDA_FILE }}
+        asset_name: avocadodl.fda
+        asset_content_type: application/zip

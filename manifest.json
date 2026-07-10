@@ -1,0 +1,25 @@
+{
+  "uuid": "avocadodl",
+  "name": "AvocadoDL",
+  "description": "Downloads videos from hundreds of sites using yt-dlp.",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "mediaParser": true,
+  "mediaListParser": true,
+  "minApiVersion": 6,
+  "minFeaturesLevel": 3,
+  "targetApiVersion": 6,
+  "dependencies": {
+    "Python": {"minVersion": "3.8"}
+  },
+  "permissions": [
+    "launchPython"
+  ],
+  "scripts": [
+    "tools.js",
+    "msabstractparser.js",
+    "msparser.js",
+    "msbatchparser.js"
+  ],
+  "updateUrl": "https://raw.githubusercontent.com/Kamikazi951/AvocadoDL/main/update.json"
+}

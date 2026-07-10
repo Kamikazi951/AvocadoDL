@@ -1,0 +1,16 @@
+{
+  "format": "bestvideo*+bestaudio/best",
+  "output_template": "%(title)s.%(ext)s",
+  "extra_ytdlp_args": [],
+  "auto_update_ytdlp": true,
+  "cookies_browser": "",
+  "embed_thumbnail": false,
+  "extract_audio": false,
+  "audio_format": "mp3",
+  "audio_quality": "192",
+  "write_subs": false,
+  "sub_langs": "en",
+  "download_archive": "",
+  "limit_rate": "",
+  "proxy": ""
+}
