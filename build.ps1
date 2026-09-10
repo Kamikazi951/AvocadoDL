@@ -22,7 +22,10 @@ if (-not $OutputFile) { $OutputFile = "avocadodl-$Version.fda" }
 
 $OutputPath = Join-Path $RootDir $OutputFile
 $YtdlpTarget = Join-Path $AddonPath "yt-dlp"
-$YtdlpSitePkg = "$(python -c 'import yt_dlp; import os; print(os.path.dirname(yt_dlp.__file__))' 2>$null)"
+$YtdlpSitePkg = "$(python -c 'import sys, os; sys.path.insert(0, os.path.expandvars(r\"%APPDATA%\avocadodl\packages\")); import yt_dlp; print(os.path.dirname(yt_dlp.__file__))' 2>$null)"
+if (-not $YtdlpSitePkg -or -not (Test-Path $YtdlpSitePkg)) {
+    $YtdlpSitePkg = "$(python -c 'import yt_dlp; import os; print(os.path.dirname(yt_dlp.__file__))' 2>$null)"
+}
 
 Write-Host "=== AvocadoDL v$Version Builder ===" -ForegroundColor Green
 Write-Host ""
@@ -38,7 +41,7 @@ if (Test-Path $YtdlpTarget) {
     Remove-Item -Recurse -Force $YtdlpTarget
 }
 
-Write-Host "Bundling yt-dlp..." -ForegroundColor Cyan
+Write-Host "Bundling yt-dlp from $YtdlpSitePkg..." -ForegroundColor Cyan
 $YtdlpPkgTarget = Join-Path $YtdlpTarget "yt_dlp"
 New-Item -ItemType Directory -Path $YtdlpPkgTarget -Force | Out-Null
 Copy-Item -Recurse "$YtdlpSitePkg\*" $YtdlpPkgTarget
@@ -61,6 +64,7 @@ $FilesToInclude = @(
     "msbatchparser.js",
     "config_loader.py",
     "ytdlp_helper.py",
+    "ytdlp_runner.py",
     "settings.template.json"
 )
 
@@ -76,8 +80,19 @@ if (Test-Path $ytSrc) {
     Copy-Item -Recurse $ytSrc (Join-Path $TempDir "yt-dlp")
 }
 
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory($TempDir, $OutputPath)
+# Create ZIP archive ensuring all internal entry paths use POSIX '/' separators
+# (Fixes macOS/Linux extracting entries as literal backslash filenames)
+python -c @"
+import zipfile, os
+output = r'$OutputPath'
+temp_dir = r'$TempDir'
+with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, _, files in os.walk(temp_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, temp_dir).replace('\\', '/')
+            zf.write(full_path, rel_path)
+"@
 
 Remove-Item -Recurse -Force $TempDir
 

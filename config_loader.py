@@ -1,8 +1,23 @@
 import json, os, sys
 from pathlib import Path
 
-SETTINGS_DIR = Path(os.environ.get("APPDATA", Path.home())) / "avocadodl"
+def get_settings_dir():
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "avocadodl"
+        return Path.home() / "AppData" / "Roaming" / "avocadodl"
+    elif sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "avocadodl"
+    else:
+        xdg = os.environ.get("XDG_CONFIG_HOME")
+        if xdg:
+            return Path(xdg) / "avocadodl"
+        return Path.home() / ".config" / "avocadodl"
+
+SETTINGS_DIR = get_settings_dir()
 SETTINGS_FILE = SETTINGS_DIR / "settings.json"
+PACKAGES_DIR = SETTINGS_DIR / "packages"
 
 DEFAULT_SETTINGS = {
     "format": "bestvideo*+bestaudio/best",

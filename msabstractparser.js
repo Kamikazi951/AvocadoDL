@@ -1,7 +1,7 @@
 var g_browsers = Object.create(null);
 var g_config = null;
 
-var YTDLP_SCRIPT = "yt-dlp/yt_dlp/__main__.py";
+var YTDLP_SCRIPT = "ytdlp_runner.py";
 
 var msAbstractParser = (function()
 {
