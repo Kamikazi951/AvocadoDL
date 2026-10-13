@@ -11,10 +11,15 @@ var msBatchVideoParser = (function()
             return msAbstractParser.parse(obj, [])
             .then(function(res)
             {
-                if (res.hasOwnProperty("entries"))
+                if (Array.isArray(res.entries))
                 {
                     for (var i = res.entries.length - 1; i >= 0; --i)
                     {
+                        if (!res.entries[i])
+                        {
+                            res.entries.splice(i, 1);
+                            continue;
+                        }
                         if (!res.entries[i].hasOwnProperty("title"))
                             continue;
                         if (res.entries[i].title === "[Deleted video]" ||

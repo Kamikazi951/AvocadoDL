@@ -6,13 +6,17 @@ function cookiesToNetscapeText(cookies)
 	{
 		var c = cookies[i];
 
-		r += c.domain + '\t' +
-			 "FALSE" + '\t' +
-			 "/" + '\t' +
-			 (c.isSecure ? "TRUE" : "FALSE") + '\t' +
-			 (Math.floor(c.expirationDate.getTime() / 1000) || 0) + '\t' +
-			 c.name + '\t' +
-			 c.value;
+		var domain = String(c.domain || "");
+		var expires = c.expirationDate;
+		if (expires && typeof expires.getTime === "function") expires = expires.getTime() / 1000;
+		else if (typeof expires === "string") expires = Date.parse(expires) / 1000;
+		expires = isFinite(expires) && expires > 0 ? Math.floor(expires) : 0;
+		var fields = [domain, domain.charAt(0) === '.' ? "TRUE" : "FALSE",
+			 c.path || "/", (c.isSecure || c.secure) ? "TRUE" : "FALSE",
+			 expires, c.name || "", c.value || ""];
+		// Reject malformed entries rather than allowing extra Netscape rows.
+		if (!domain || fields.some(function(value) { return /[\t\r\n]/.test(String(value)); })) continue;
+		r += fields.join('\t');
 
 		r += '\n';
 	}
@@ -22,11 +26,9 @@ function cookiesToNetscapeText(cookies)
 
 function logPythonResult(obj)
 {
-   if (obj.output)
-       console.log("Python result: ", obj.output);
-
+   // Extractor output contains signed URLs and cookies. Do not log it.
    if (obj.errorOutput)
-       console.log("Python errors: ", obj.errorOutput);
+       console.log("AvocadoDL: extractor diagnostics available on failure.");
 }
 
 function logError(msg, detail)
