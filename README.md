@@ -1,115 +1,76 @@
-# AvocadoDL
+# AvocadoDL FDM Add-on 1.1.0
 
-[![Build](https://github.com/Kamikazi951/avocadodl/actions/workflows/build.yml/badge.svg)](https://github.com/Kamikazi951/avocadodl/actions/workflows/build.yml)
+Resolve video pages and streams with yt-dlp and let Free Download Manager choose formats and handle the download. Works with the AvocadoDL Chrome extension and the official FDM browser integration.
 
-**AvocadoDL** is an add-on for **Free Download Manager 6** that lets you download videos from YouTube, Twitter/X, Instagram, TikTok, Facebook, and hundreds of other sites.
+## Install or update
 
-> [!IMPORTANT]
-> This FDM Add-on works in pair with the [AvocadoDL Chrome Extension](https://github.com/Kamikazi951/AvocadoDLExtension) which automatically sniffs webpages and sends video download commands to Free Download Manager with one-click!
+1. Open FDM → **Tools → Add-ons → Install from file**.
+2. Select `avocadodl-1.1.0.fda` and restart FDM.
+3. Keep the official Free Download Manager Chrome extension enabled.
 
----
+Requires **Python 3.10+**. YouTube also needs **Deno 2.3.0+** (recommended) or **Node.js 22+**. The runner finds common Deno locations and enables Node when Deno is absent. FDM declares Deno as an add-on dependency; check its dependency setup if no JavaScript runtime is available. FDM handles final media processing.
 
-## Install
+The release bundles **yt-dlp 2026.08.19** and matching **yt-dlp-ejs 0.8.0**. These are the stable packages verified during this update. See the upstream [JavaScript runtime and EJS requirements](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
-1. Download the latest `avocadodl.fda` from [Releases](https://github.com/Kamikazi951/avocadodl/releases)
-2. Open FDM -- **Tools > Add-ons > Install from file**
-3. Select `avocadodl.fda` and restart FDM
+## What changed
 
-**Requirements:**
-- **Python 3.8+** ([python.org](https://python.org)) -- the addon runs Python scripts to detect video formats
-- **yt-dlp is bundled** inside the `.fda` file -- no separate installation needed
-- **Ffmpeg** comes with FDM -- nothing extra to install
-
----
-
-## Quick Start
-
-1. Copy a video URL
-2. FDM detects it automatically and shows download options
-3. Choose quality and download
-
-No configuration needed.
-
----
+- Bundle the YouTube JavaScript challenge solver alongside yt-dlp. Use current upstream extractor defaults instead of forcing a potentially incompatible player client.
+- TikTok uses the maintained yt-dlp extractor. The previous unconditional third-party resolver is removed; video URLs are no longer sent to that extra service.
+- Preserve cookie domain scope, path, security flags, session cookies and supported expiry representations.
+- If Chrome cookie extraction fails because of a locked/encrypted database, retry a public video without browser cookies. Sign-in-only content still needs valid cookies.
+- Preserve the provided user agent and referrer. Missing optional FDM proxy APIs no longer abort parsing.
+- Share concurrent initialization, reload configuration after a minute, and avoid repeated browser probes. Handle null playlist items and malformed extractor output.
+- Strip only the FDM marker from target URLs; leave signed query encoding intact. Proxy/referer URLs cannot be mistaken for the target video.
+- Update yt-dlp and EJS together using PyPI SHA-256 verification, staged import validation and an atomic pointer to a new package directory. Failed/offline updates retain the working package; concurrent processes share an update lock. Checks are limited to once per hour, including failed checks.
+- Select the newest bundled/cached package, avoiding downgrades from old caches. Do not print complete extraction JSON containing signed URLs or cookie headers to FDM's logs.
 
 ## Settings
 
-AvocadoDL auto-creates a settings file at `%APPDATA%\avocadodl\settings.json`.
+Settings are created at `%APPDATA%\avocadodl\settings.json` on Windows, `~/Library/Application Support/avocadodl/settings.json` on macOS, and `$XDG_CONFIG_HOME/avocadodl/settings.json` (or `~/.config/avocadodl/settings.json`) on Linux.
 
-| Setting | Default | Description |
+Common options:
+
+| Setting | Default | Purpose |
 |---|---|---|
-| `format` | `bestvideo*+bestaudio/best` | Video format selection |
-| `output_template` | `%(title)s.%(ext)s` | File naming pattern |
-| `extra_ytdlp_args` | `[]` | Extra yt-dlp arguments |
-| `auto_update_ytdlp` | `true` | Auto-update yt-dlp |
-| `cookies_browser` | `""` | Browser for cookies (`firefox`, `chrome`, `brave`, `edge`, or empty for auto-detect) |
-| `embed_thumbnail` | `false` | Embed thumbnail in file |
-| `extract_audio` | `false` | Extract audio only |
-| `audio_format` | `mp3` | Audio format (`mp3`, `m4a`, `opus`, `flac`) |
-| `audio_quality` | `192` | Audio quality (0-9 or bitrate) |
-| `write_subs` | `false` | Download subtitles |
-| `sub_langs` | `en` | Subtitle languages (comma-separated) |
-| `download_archive` | `""` | Archive file to track downloaded videos |
-| `limit_rate` | `""` | Download speed limit (e.g. `5M`, `1M`) |
-| `proxy` | `""` | Proxy URL (e.g. `http://127.0.0.1:8080`) |
+| `auto_update_ytdlp` | `true` | Check stable PyPI packages at most once per hour |
+| `cookies_browser` | `""` | Browser supplied by FDM; set `chrome`, `edge`, `firefox`, etc. to override |
+| `format` | `bestvideo*+bestaudio/best` | yt-dlp format selector |
+| `extra_ytdlp_args` | `[]` | Additional string arguments |
+| `proxy` | `""` | Proxy fallback when FDM supplies none |
 
-### Format Presets
+The remaining existing options are listed in `settings.template.json`. This add-on runs yt-dlp to obtain metadata; FDM performs the actual download. Options for postprocessing, speed, subtitles or naming are not a guarantee that FDM implements the corresponding yt-dlp download behavior.
 
-| Value | Description |
-|---|---|
-| `bestvideo*+bestaudio/best` | Best quality (default) |
-| `bestvideo[height<=1080]+bestaudio/best[height<=1080]` | 1080p max |
-| `bestvideo[height<=2160]+bestaudio/best[height<=2160]` | 4K max |
-| `bestaudio/best` | Audio only |
-| `worst` | Lowest quality |
+For a video requiring your signed-in session, FDM-provided cookies take priority. If browser cookie extraction is unavailable, use a Netscape-format cookies file you control, for example:
 
-### Output Template Examples
+```json
+"extra_ytdlp_args": ["--cookies", "C:\\Users\\YourName\\Downloads\\cookies.txt"]
+```
 
-| Template | Result |
-|---|---|
-| `%(title)s.%(ext)s` | `My Video.mp4` |
-| `%(uploader)s/%(title)s.%(ext)s` | `ChannelName/My Video.mp4` |
-| `%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s` | `Playlist/01 - My Video.mp4` |
-
----
-
-## How It Works
-
-1. Copy a video URL -- FDM detects it
-2. AvocadoDL runs yt-dlp to fetch available formats
-3. FDM shows the formats in its download dialog
-4. Pick a format -- FDM handles the download
-
----
-
-## Updating
-
-AvocadoDL checks for updates automatically: **Tools > Add-ons > select AvocadoDL > Check for updates**.
-
-yt-dlp is auto-updated when `auto_update_ytdlp` is enabled (default).
-
----
+Cookie files contain login credentials. Keep them private. AvocadoDL does not bypass DRM, account permissions, CAPTCHA, geographic restrictions or Chrome's cookie encryption.
 
 ## Troubleshooting
 
-| Problem | Solution |
+| Symptom | Check |
 |---|---|
-| "Python not found" | Install Python 3.8+ from [python.org](https://python.org) and restart FDM |
-| "Unsupported URL" | The site isn't supported by yt-dlp yet |
-| "Access denied (403)" or "Age-restricted" | Set `cookies_browser` in settings to your browser name |
-| Formats not showing | Make sure `auto_update_ytdlp` is enabled (default) to keep yt-dlp current |
-| Audio extraction fails | FDM bundles ffmpeg automatically -- if missing, install [ffmpeg](https://ffmpeg.org) |
+| No FDM dialog | Start FDM and enable its official Chrome extension; “FDM requested” is not native confirmation |
+| Python missing | Install Python 3.10+ and restart FDM |
+| YouTube lacks formats | Verify Deno/Node and the bundled EJS helper; keep updates enabled |
+| 403 or login required | Open the video in your signed-in browser; check cookies/referrer; retry the page URL instead of an expired CDN link |
+| Unsupported URL | Try the original video page; yt-dlp may not support this site |
+| DRM protected | The add-on cannot download this content |
 
-## Building from Source
-
-Requires: PowerShell, Python 3.8+, [yt-dlp](https://github.com/yt-dlp/yt-dlp) installed via `pip install yt-dlp`
+## Build and test
 
 ```powershell
 .\build.ps1
+python -m unittest discover -s tests -v
+node --test tests/parser.cjs
 ```
 
----
+The builder downloads current stable, verified pure-Python wheels into temporary staging; it does not install packages globally or delete a shared temporary directory. Future builds can contain newer yt-dlp/EJS versions than those checked above. Build with `python build.py` on other operating systems. `--offline` requires a complete `yt-dlp/` folder with both yt-dlp and its matching EJS package. The archive uses portable `/` paths and excludes bytecode caches. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development/release workflow and [CHANGELOG.md](CHANGELOG.md) for version notes.
 
-## License
+Tests cover URL arguments, cookie errors, configuration validation, updater integrity/concurrency/rollback, FDM parser behavior, and the built archive's extraction of local direct media, HTML players, HLS and DASH. A live YouTube metadata check also succeeded during this update; that does not establish support for every site or account-restricted video.
 
-Public domain. See [LICENSE](LICENSE).
+## Release publishing
+
+`update.json` intentionally continues to point to the existing published release. Upload the new `.fda` release asset before changing the public update manifest to 1.1.0. The local build does not publish a GitHub release or modify an installed FDM add-on.

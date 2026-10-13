@@ -11,3 +11,9 @@ yt-dlp/
 
 # Temp
 *.tmp
+
+# Local credentials and exported browser cookies
+.env
+.env.*
+*.pem
+/cookies*.txt
