@@ -39,10 +39,17 @@ DEFAULT_SETTINGS = {
 def load():
     try:
         if SETTINGS_FILE.exists():
-            with open(SETTINGS_FILE) as f:
+            with open(SETTINGS_FILE, encoding="utf-8-sig") as f:
                 user = json.load(f)
+            if not isinstance(user, dict):
+                return dict(DEFAULT_SETTINGS)
             merged = dict(DEFAULT_SETTINGS)
-            merged.update(user)
+            for key, default in DEFAULT_SETTINGS.items():
+                value = user.get(key, default)
+                if isinstance(value, type(default)):
+                    merged[key] = value
+            if not all(isinstance(arg, str) for arg in merged['extra_ytdlp_args']):
+                merged['extra_ytdlp_args'] = []
             return merged
     except Exception:
         pass
@@ -50,7 +57,7 @@ def load():
 
 def save(settings):
     SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
-    with open(SETTINGS_FILE, "w") as f:
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
         json.dump(settings, f, indent=2)
 
 if __name__ == "__main__":
